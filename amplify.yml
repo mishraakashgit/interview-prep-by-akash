@@ -4,11 +4,16 @@ backend:
     build:
       commands:
         - nvm install 22 && nvm use 22
-        - npm ci --cache .npm --prefer-offline
+        # `npm ci` rejects the lock file because Amplify's construct packages bundle their own
+        # dependencies (an npm limitation); `npm install` still follows package-lock.json.
+        - npm install --no-audit --no-fund --cache .npm --prefer-offline
         # Deploys Cognito auth + the data API for this branch and writes amplify_outputs.json
         - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
+    preBuild:
+      commands:
+        - nvm use 22
     build:
       commands:
         - npm test
