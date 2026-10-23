@@ -10,13 +10,16 @@ leadership/behavioral round.
 
 | Page | What it does |
 | --- | --- |
-| **Today** | Your plan for the day: 2 new DSA problems, reviews that are due, one system design topic, one leadership question, a study-time log and journal. Weekends switch to mock-interview days. Shows your streak and overall progress. |
-| **DSA** | ~155 LeetCode problems grouped into 19 patterns (NeetCode-150 style plus LLD/design problems that banks like to ask). ★ marks the core set. Rate every solve as *Shaky / OK / Nailed it* and the app schedules the next review (spaced repetition). Per-problem notes. |
-| **System Design** | A 45-minute answer framework and 32 topics: fundamentals, building blocks, classic case studies and a **Fintech** set (payment system, card authorization network, double-entry ledger, fraud detection, cross-border transfer, matching engine, reconciliation, Open Banking). Each topic has a checklist of what a strong answer covers, plus your notes. |
-| **Leadership & Behavioral** | STAR tips, a 30-question bank aimed at lead roles in banking/payments, and a STAR **story bank** where you link each story to the questions it answers, so you can see the gaps. |
-| **Companies** | Focus areas and tips per target company, your own notes, and an application tracker (stage, notes). |
-| **Mock Interview** | Random coding, design or behavioral prompt with a countdown timer and a self-assessment rubric. |
-| **Roadmap & Data** | The 12-week roadmap, plan start date, and backup export/import. |
+| **Today** | Your daily goal as a checklist: 2 new DSA problems, up to 4 spaced reviews, one system design topic, one leadership question (plus a mock on weekends). A goal meter fills as you go, with a small celebration when you finish. Includes a study-time log and journal. |
+| **DSA** | ~155 LeetCode problems in 19 collapsible pattern sections (NeetCode-150 style plus LLD problems banks like to ask). ★ marks the core set. Hover a row to rate a solve *Shaky / OK / Nailed it*; the app schedules the next review. Filters, notes per problem, and `/` to search. |
+| **System Design** | A 45-minute answer framework and 32 topics: fundamentals, building blocks, classic case studies and a **Fintech** set (payment system, card authorization network, double-entry ledger, fraud detection, cross-border transfer, matching engine, reconciliation, Open Banking). Each topic has a checklist and notes. |
+| **Leadership** | STAR tips, a 30-question bank aimed at lead roles in banking/payments, and a STAR **story bank** linked to the questions each story answers. |
+| **Companies** | Focus areas and tips per target company, your notes, and an application tracker. |
+| **Mock** | Random coding, design or behavioral prompt with a timer and a self-assessment rubric. |
+| **Roadmap** | The 12-week roadmap, plan start date, and backup export/import. |
+
+On every page a **progress rail** shows problems left (by difficulty), reviews due and design topics done,
+plus a **calendar** that marks each day as *goal hit*, *partial* or *skipped*, with your streak.
 
 ### The 12-week roadmap
 
@@ -38,11 +41,22 @@ leadership/behavioral round.
 If you get ahead, the plan pulls from the remaining core problems and topics. After week 12 it keeps
 going in revision mode, driven by the spaced-repetition queue.
 
-## Your data
+## Accounts, sync and storage
 
-Everything is stored in your browser's `localStorage`; there is no backend and no login.
-Use **Roadmap & Data → Export backup** regularly (and to move between laptop and phone).
-Clearing browser data erases progress unless you have a backup.
+With the Amplify backend deployed you sign in with **email + password** (Amazon Cognito), and your
+progress is saved to your account, so it follows you across laptop and phone.
+
+How it works, and why it is light on the browser:
+
+- All progress is one small JSON document (typically 10-50 KB, even after months of use).
+- It is cached in `localStorage` (browsers allow ~5 MB per site), so the app loads instantly and keeps working if the network drops.
+- Changes are **debounced**: a burst of clicks becomes a single save ~1.5 s later, and pending changes are flushed when you close the tab.
+- In the cloud it's one DynamoDB item per user (owner-only access), well inside the AWS free tier.
+- The top bar shows sync status; hover it to see when your last change was made and synced.
+- On sign-in, the newer copy wins: the cloud copy, unless this browser has unsynced newer changes. Progress you made before creating an account is carried over on first sign-in.
+
+Without the backend (for example `npm run dev` locally), the app runs in **local-only** mode: no login,
+data in this browser only. Use **Roadmap → Export backup** to move it around.
 
 ## Run locally
 
@@ -55,25 +69,38 @@ npm test           # unit tests for plan, spaced repetition, data integrity
 npm run build      # production build into dist/
 ```
 
-## Deploy to AWS Amplify Hosting
+## Deploy to AWS Amplify (Gen 2: hosting + auth + data)
 
-The repo already contains `amplify.yml`, so no build settings need to be typed in.
+The repo contains `amplify.yml` and an `amplify/` backend (Cognito auth + a `Progress` data model).
+Each build deploys the backend for that branch, writes `amplify_outputs.json`, runs the tests and builds the site.
 
-1. Push this repo to GitHub (already done if you are reading this there).
-2. Open the AWS console → **AWS Amplify** → **Create new app** → **GitHub**.
-3. Authorize Amplify, pick `interview-prep-by-akash` and the branch to deploy (e.g. `main`).
-4. Amplify detects `amplify.yml`. Accept the defaults and click **Save and deploy**.
-5. In a few minutes you get a URL like `https://main.xxxxxx.amplifyapp.com`. Every push to that branch
-   redeploys automatically.
+**New Amplify app**
+
+1. AWS console → **AWS Amplify** → **Create new app** → **GitHub** → pick this repo and branch (`main`).
+2. Amplify detects the Gen 2 backend. Click **Save and deploy**. The first deploy takes ~5-10 minutes.
+3. Open the app URL, choose **Create an account**, enter the 6-digit code from your email, and you're in.
+
+**Already deployed the earlier (hosting-only) version?**
+
+Backend deploys need a service role. In the app: **App settings → IAM roles → Service role → Create new role**,
+attach the managed policy **AmplifyBackendDeployFullAccess**, select the role, then **Redeploy** the branch.
 
 Notes:
 
-- The build runs `npm test` before `npm run build`, so a broken change never gets deployed.
-- The app uses hash-based URLs (`/#/dsa`), so **no SPA rewrite rules are needed**.
-- The build selects Node 22 via `nvm`. If your Amplify build image ever complains, set
-  **App settings → Build settings → Build image settings → Live package updates → Node.js version = 22**.
-- Optional: add a custom domain under **Hosting → Custom domains**, and restrict access with
-  **Hosting → Access control** (basic auth) if you want the site private.
+- The app uses hash URLs (`/#/dsa`), so no SPA rewrite rules are needed.
+- The build selects Node 22 via `nvm`. If the build image complains, set
+  **Build settings → Build image settings → Live package updates → Node.js version = 22**.
+- Anyone who finds the URL can create their own account (they only ever see their own data). To keep it
+  just for you, disable self sign-up on the Cognito user pool after creating your account
+  (Cognito console → your user pool → **Sign-up** → turn off self-registration).
+- Cognito's built-in email sender has a low daily limit, which is plenty for one user.
+
+**Local development with your own cloud sandbox (optional)**
+
+```bash
+npx ampx sandbox   # needs AWS credentials; deploys a personal backend and writes amplify_outputs.json
+npm run dev
+```
 
 ## Customising content
 
@@ -83,9 +110,9 @@ All content lives in plain TypeScript files, so it's easy to add to:
 - `src/data/systemDesign.ts`: design topics and their checklists
 - `src/data/behavioral.ts`: behavioral questions and STAR tips
 - `src/data/companies.ts`: company focus areas and tips
-- `src/lib/plan.ts`: the weekly roadmap and daily plan rules
+- `src/lib/plan.ts`: the weekly roadmap, daily goal and calendar rules
+- `amplify/`: backend definition (auth + data)
 
 ## Possible next steps
 
-- Sync progress across devices with an Amplify Gen 2 backend (Cognito auth + DynamoDB) instead of export/import.
 - Add Java/Spring deep-dive topics (JVM, GC, concurrency) as a fourth track; Morgan Stanley and JP Morgan probe these.

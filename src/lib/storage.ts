@@ -6,6 +6,7 @@ export const STORAGE_KEY = 'interview-prep:v1';
 export function defaultState(): AppState {
   return {
     version: 1,
+    updatedAt: 0,
     startDate: todayISO(),
     problems: {},
     topics: {},
@@ -14,6 +15,7 @@ export function defaultState(): AppState {
     companyNotes: {},
     logs: {},
     planDone: {},
+    dayStats: {},
   };
 }
 
@@ -25,18 +27,32 @@ export function normalize(raw: unknown): AppState {
   return { ...defaultState(), ...data };
 }
 
-export function loadState(): AppState {
+/** Per-user cache key when signed in, so two accounts on one browser never mix. */
+export const userStorageKey = (userId: string) => `${STORAGE_KEY}:${userId}`;
+
+export function loadState(key = STORAGE_KEY): AppState | null {
   try {
-    const text = localStorage.getItem(STORAGE_KEY);
-    return text ? normalize(JSON.parse(text)) : defaultState();
+    const text = localStorage.getItem(key);
+    return text ? normalize(JSON.parse(text)) : null;
   } catch {
-    return defaultState();
+    return null;
   }
 }
 
-export function saveState(state: AppState): void {
+/** True once the user has recorded anything worth keeping. */
+export function hasProgress(s: AppState): boolean {
+  return (
+    Object.keys(s.problems).length > 0 ||
+    Object.keys(s.topics).length > 0 ||
+    s.stories.length > 0 ||
+    s.applications.length > 0 ||
+    Object.keys(s.logs).length > 0
+  );
+}
+
+export function saveState(state: AppState, key = STORAGE_KEY): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(key, JSON.stringify(state));
   } catch {
     // Storage full or blocked (private mode): the app keeps working in memory.
   }

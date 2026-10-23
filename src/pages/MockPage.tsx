@@ -75,11 +75,11 @@ export default function MockPage() {
 
   return (
     <div className="stack">
-      <PageHeader title="Mock interview">
+      <PageHeader eyebrow="Practice under pressure" title="Mock interview">
         Pick a format, start the clock, and talk out loud as if an interviewer were in the room. Score yourself at the end.
       </PageHeader>
 
-      <div className="row">
+      <div className="segmented" style={{ alignSelf: 'flex-start' }}>
         {MODES.map((m) => (
           <button key={m.id} className={mode === m.id && prompt.length ? 'selected' : ''} onClick={() => generate(m.id)}>
             {m.label}
@@ -87,10 +87,12 @@ export default function MockPage() {
         ))}
       </div>
 
+      {prompt.length === 0 && <p className="card empty">Pick a format above to get a question and start the clock.</p>}
+
       {prompt.length > 0 && (
         <div className="grid-2">
           <section className="card stack">
-            <h2>Your question</h2>
+            <div className="eyebrow">Your question</div>
             {mode === 'coding' &&
               prompt.map((id) => {
                 const p = PROBLEMS.find((x) => x.id === id)!;
@@ -145,7 +147,7 @@ export default function MockPage() {
               <button onClick={() => generate(mode)}>Reset</button>
             </div>
             <div>
-              <h3>Self-assessment</h3>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>Self-assessment</div>
               <ul className="checklist">
                 {RUBRIC[mode].map((r, i) => (
                   <li key={r}>

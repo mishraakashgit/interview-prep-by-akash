@@ -5,3 +5,7 @@ dist
 .vscode
 coverage
 *.tsbuildinfo
+# Amplify Gen 2
+.amplify
+amplify_outputs*
+amplifyconfiguration*

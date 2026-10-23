@@ -53,6 +53,8 @@ export interface TopicProgress {
   checked: number[]; // indexes into keyPoints
   notes: string;
   lastStudied?: string;
+  /** ISO date the topic was marked done. */
+  doneOn?: string;
 }
 
 export interface Story {
@@ -89,8 +91,15 @@ export interface DailyLog {
   journal: string;
 }
 
+export interface DayStat {
+  done: number;
+  total: number;
+}
+
 export interface AppState {
   version: 1;
+  /** Epoch ms of the last change; used to pick the newer copy when syncing. */
+  updatedAt: number;
   startDate: string; // when the user started the plan
   problems: Record<string, ProblemProgress>;
   topics: Record<string, TopicProgress>;
@@ -100,4 +109,6 @@ export interface AppState {
   logs: Record<string, DailyLog>; // keyed by ISO date
   /** Plan task ids completed, keyed "date|taskKey". */
   planDone: Record<string, boolean>;
+  /** Daily goal progress snapshot per ISO date, for the calendar. */
+  dayStats: Record<string, DayStat>;
 }
