@@ -43,8 +43,8 @@ going in revision mode, driven by the spaced-repetition queue.
 
 ## Accounts, sync and storage
 
-With the Amplify backend deployed you sign in with **email + password** (Amazon Cognito), and your
-progress is saved to your account, so it follows you across laptop and phone.
+With the Amplify backend deployed, the app is **invite-only**: you and a few friends each sign in with
+**email + password** (Amazon Cognito). Everyone's progress is private to their own account, and is saved to your account, so it follows you across laptop and phone.
 
 How it works, and why it is light on the browser:
 
@@ -78,7 +78,7 @@ Each build deploys the backend for that branch, writes `amplify_outputs.json`, r
 
 1. AWS console → **AWS Amplify** → **Create new app** → **GitHub** → pick this repo and branch (`main`).
 2. Amplify detects the Gen 2 backend. Click **Save and deploy**. The first deploy takes ~5-10 minutes.
-3. Open the app URL, choose **Create an account**, enter the 6-digit code from your email, and you're in.
+3. Create your account (and one per friend), see **Adding users** below.
 
 **Already deployed the earlier (hosting-only) version?**
 
@@ -90,10 +90,20 @@ Notes:
 - The app uses hash URLs (`/#/dsa`), so no SPA rewrite rules are needed.
 - The build selects Node 22 via `nvm`. If the build image complains, set
   **Build settings → Build image settings → Live package updates → Node.js version = 22**.
-- Anyone who finds the URL can create their own account (they only ever see their own data). To keep it
-  just for you, disable self sign-up on the Cognito user pool after creating your account
-  (Cognito console → your user pool → **Sign-up** → turn off self-registration).
-- Cognito's built-in email sender has a low daily limit, which is plenty for one user.
+- Cognito's built-in email sender has a low daily limit, which is plenty for a handful of users.
+
+**Adding users (you and your friends)**
+
+Self sign-up is disabled in the backend, so nobody can register on their own. To add someone:
+
+1. AWS console → **Amazon Cognito** → **User pools** → the pool named `amplifyAuthUserPool…`.
+2. **Users** → **Create user**.
+3. Choose **Send an email invitation**, enter their email, tick **Mark email address as verified**, and let
+   Cognito **generate a password**. Click **Create user**.
+4. They get an email with a temporary password. On first sign-in the app asks them to set their own.
+
+To remove someone, select them under **Users** and **Delete** (or **Disable** to pause access).
+Each person's progress is a separate record that only they can read.
 
 **Local development with your own cloud sandbox (optional)**
 
@@ -102,14 +112,14 @@ npx ampx sandbox   # needs AWS credentials; deploys a personal backend and write
 npm run dev
 ```
 
-## Cost (single user)
+## Cost (you + a few friends)
 
 | Service | What it's used for | Expected cost |
 | --- | --- | --- |
 | Cognito | Login | $0. Always free up to 10,000 monthly active users |
-| DynamoDB | Your progress record | $0. Provisioned at 5 RCU / 5 WCU, inside the always-free 25/25 |
+| DynamoDB | One progress record per person | $0. Provisioned at 5 RCU / 5 WCU, inside the always-free 25/25 |
 | Amplify Hosting | Builds + serving the site | $0 within 1,000 build min, 5 GB stored, 15 GB served per month (each build is a few minutes) |
-| AppSync | The API between app and DB | A few thousand requests a month at ~$4 per million: under $0.05 |
+| AppSync | The API between app and DB | A few thousand requests per person a month at ~$4 per million: about $0.05 for three people |
 | CloudWatch / S3 / Lambda | Logs and deployment plumbing | Cents at most |
 
 Accounts created after 15 July 2025 start with $100-200 of credits that cover all of this. The **Free plan

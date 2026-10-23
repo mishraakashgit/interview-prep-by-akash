@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react';
-import { confirmResetPassword, confirmSignUp, resendSignUpCode, resetPassword, signIn, signUp } from 'aws-amplify/auth';
+import { confirmResetPassword, confirmSignIn, resetPassword, signIn } from 'aws-amplify/auth';
 
-type Mode = 'signIn' | 'signUp' | 'confirm' | 'forgot' | 'reset';
+// Sign-up is disabled in the backend (invite-only): accounts are created from
+// the Cognito console, and the first sign-in replaces the emailed temporary password.
+type Mode = 'signIn' | 'newPassword' | 'forgot' | 'reset';
 
 const COPY: Record<Mode, { title: string; cta: string }> = {
   signIn: { title: 'Welcome back', cta: 'Sign in' },
-  signUp: { title: 'Create your account', cta: 'Create account' },
-  confirm: { title: 'Check your email', cta: 'Verify' },
+  newPassword: { title: 'Set your password', cta: 'Save and continue' },
   forgot: { title: 'Reset password', cta: 'Send code' },
   reset: { title: 'Choose a new password', cta: 'Update password' },
 };
@@ -20,21 +21,19 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const go = (m: Mode) => {
+  const go = (m: Mode, message = '') => {
     setMode(m);
     setError('');
-    setInfo('');
+    setInfo(message);
     setCode('');
   };
 
   const doSignIn = async () => {
     const { nextStep } = await signIn({ username: email, password });
     if (nextStep.signInStep === 'DONE') return onSignedIn();
-    if (nextStep.signInStep === 'CONFIRM_SIGN_UP') {
-      await resendSignUpCode({ username: email });
-      go('confirm');
-      setInfo('Your email is not verified yet. We sent you a new code.');
-      return;
+    if (nextStep.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
+      setPassword('');
+      return go('newPassword', 'First sign-in: replace the temporary password from your invite email.');
     }
     throw new Error(`Unsupported sign-in step: ${nextStep.signInStep}`);
   };
@@ -45,23 +44,14 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
     setError('');
     try {
       if (mode === 'signIn') await doSignIn();
-      if (mode === 'signUp') {
-        const { nextStep } = await signUp({ username: email, password, options: { userAttributes: { email } } });
-        if (nextStep.signUpStep === 'DONE') await doSignIn();
-        else {
-          go('confirm');
-          setInfo(`We sent a 6-digit code to ${email}.`);
-        }
-      }
-      if (mode === 'confirm') {
-        await confirmSignUp({ username: email, confirmationCode: code.trim() });
-        if (password) await doSignIn();
-        else go('signIn');
+      if (mode === 'newPassword') {
+        const { nextStep } = await confirmSignIn({ challengeResponse: password });
+        if (nextStep.signInStep !== 'DONE') throw new Error(`Unsupported sign-in step: ${nextStep.signInStep}`);
+        onSignedIn();
       }
       if (mode === 'forgot') {
         await resetPassword({ username: email });
-        go('reset');
-        setInfo(`If an account exists for ${email}, a code is on its way.`);
+        go('reset', `If an account exists for ${email}, a code is on its way.`);
       }
       if (mode === 'reset') {
         await confirmResetPassword({ username: email, confirmationCode: code.trim(), newPassword: password });
@@ -74,8 +64,9 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
     }
   };
 
-  const needsPassword = mode === 'signIn' || mode === 'signUp' || mode === 'reset';
-  const needsCode = mode === 'confirm' || mode === 'reset';
+  const needsCode = mode === 'reset';
+  const needsPassword = mode !== 'forgot';
+  const newPassword = mode === 'newPassword' || mode === 'reset';
 
   return (
     <div className="auth">
@@ -93,17 +84,19 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
           {info && <p className="muted small">{info}</p>}
           {error && <p className="auth-error">{error}</p>}
           <form onSubmit={submit}>
-            <label className="field">
-              Email
-              <input
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                disabled={mode === 'confirm' || mode === 'reset'}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
+            {mode !== 'newPassword' && (
+              <label className="field">
+                Email
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  disabled={mode === 'reset'}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </label>
+            )}
             {needsCode && (
               <label className="field">
                 Verification code
@@ -112,46 +105,35 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
             )}
             {needsPassword && (
               <label className="field">
-                {mode === 'reset' ? 'New password' : 'Password'}
+                {newPassword ? 'New password' : 'Password'}
                 <input
                   type="password"
-                  autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+                  autoComplete={newPassword ? 'new-password' : 'current-password'}
                   required
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                {mode !== 'signIn' && (
-                  <span className="faint">8+ characters with upper and lower case, a number and a symbol.</span>
-                )}
+                {newPassword && <span className="faint">8+ characters with upper and lower case, a number and a symbol.</span>}
               </label>
             )}
             <button className="primary" disabled={busy}>
               {busy ? 'Please wait…' : COPY[mode].cta}
             </button>
           </form>
-          {mode === 'signIn' && (
+          {mode === 'signIn' ? (
             <button className="ghost small" onClick={() => go('forgot')}>
               Forgot password?
             </button>
-          )}
-          {mode === 'confirm' && (
-            <button className="ghost small" disabled={busy} onClick={() => resendSignUpCode({ username: email }).then(() => setInfo('New code sent.'))}>
-              Resend code
-            </button>
+          ) : (
+            mode !== 'newPassword' && (
+              <button className="ghost small" onClick={() => go('signIn')}>
+                Back to sign in
+              </button>
+            )
           )}
         </div>
-        <p className="auth-switch">
-          {mode === 'signIn' ? (
-            <>
-              New here? <button onClick={() => go('signUp')}>Create an account</button>
-            </>
-          ) : (
-            <>
-              Have an account? <button onClick={() => go('signIn')}>Sign in</button>
-            </>
-          )}
-        </p>
+        <p className="auth-switch">Invite-only · ask the owner for an account</p>
       </div>
     </div>
   );

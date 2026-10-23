@@ -12,3 +12,15 @@ const backend = defineBackend({ auth, data });
 const progressTable = backend.data.resources.cfnResources.amplifyDynamoDbTables['Progress'];
 progressTable.billingMode = BillingMode.PROVISIONED;
 progressTable.provisionedThroughput = { readCapacityUnits: 5, writeCapacityUnits: 5 };
+
+// Personal app: nobody can sign themselves up. The one account is created from the
+// Cognito console ("Create user"), which emails a temporary password.
+backend.auth.resources.cfnResources.cfnUserPool.adminCreateUserConfig = {
+  allowAdminCreateUserOnly: true,
+};
+
+// Invite-only: nobody can sign themselves up. Accounts for you and your friends are
+// created from the Cognito console ("Create user"), which emails a temporary password.
+backend.auth.resources.cfnResources.cfnUserPool.adminCreateUserConfig = {
+  allowAdminCreateUserOnly: true,
+};
