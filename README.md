@@ -102,6 +102,20 @@ npx ampx sandbox   # needs AWS credentials; deploys a personal backend and write
 npm run dev
 ```
 
+## Cost (single user)
+
+| Service | What it's used for | Expected cost |
+| --- | --- | --- |
+| Cognito | Login | $0. Always free up to 10,000 monthly active users |
+| DynamoDB | Your progress record | $0. Provisioned at 5 RCU / 5 WCU, inside the always-free 25/25 |
+| Amplify Hosting | Builds + serving the site | $0 within 1,000 build min, 5 GB stored, 15 GB served per month (each build is a few minutes) |
+| AppSync | The API between app and DB | A few thousand requests a month at ~$4 per million: under $0.05 |
+| CloudWatch / S3 / Lambda | Logs and deployment plumbing | Cents at most |
+
+Accounts created after 15 July 2025 start with $100-200 of credits that cover all of this. The **Free plan
+account closes after 6 months** (or when credits run out), so upgrade to the Paid plan before then; the
+always-free allowances keep applying. Set an **AWS Budgets** alert at $1 so nothing surprises you.
+
 ## Customising content
 
 All content lives in plain TypeScript files, so it's easy to add to:
