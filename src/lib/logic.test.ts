@@ -3,7 +3,7 @@ import { PATTERNS, PROBLEMS } from '../data/dsa';
 import { SD_TOPICS } from '../data/systemDesign';
 import { BEHAVIORAL_QUESTIONS } from '../data/behavioral';
 import { addDays, diffDays } from './dates';
-import { buildDailyPlan, currentStreak, ROADMAP } from './plan';
+import { activeDates, buildDailyPlan, currentStreak, dayStatus, MAX_REVIEWS_PER_DAY, planTasks, ROADMAP } from './plan';
 import { isDue, nextInterval, recordAttempt } from './spacedRepetition';
 import { defaultState, normalize } from './storage';
 import type { AppState } from '../types';
@@ -103,6 +103,58 @@ describe('daily plan', () => {
     const plan = buildDailyPlan(stateFrom(MONDAY), saturday);
     expect(plan.mockDay).toBe(true);
     expect(plan.newProblems).toHaveLength(1);
+  });
+});
+
+describe('daily goal', () => {
+  it('counts a solved problem and the behavioral question as done', () => {
+    let state = stateFrom(MONDAY);
+    const plan = buildDailyPlan(state, MONDAY);
+    state = {
+      ...state,
+      problems: { [plan.newProblems[0].id]: recordAttempt(undefined, MONDAY, 2) },
+      planDone: { [`${MONDAY}|beh:${plan.behavioral.id}`]: true },
+    };
+    const tasks = planTasks(state, buildDailyPlan(state, MONDAY));
+    expect(tasks).toHaveLength(4); // 2 problems + topic + behavioral
+    expect(tasks.filter((t) => t.done)).toHaveLength(2);
+  });
+
+  it('only counts a topic finished that day', () => {
+    const plan = buildDailyPlan(stateFrom(MONDAY), MONDAY);
+    const id = plan.topic!.id;
+    const state = stateFrom(MONDAY, { topics: { [id]: { done: true, checked: [], notes: '', doneOn: MONDAY } } });
+    expect(planTasks(state, buildDailyPlan(state, MONDAY)).find((t) => t.key === `sd:${id}`)?.done).toBe(true);
+    // Next day a new topic is planned.
+    expect(buildDailyPlan(state, addDays(MONDAY, 1)).topic?.id).not.toBe(id);
+  });
+
+  it('caps reviews per day and reports the backlog', () => {
+    const problems = Object.fromEntries(PROBLEMS.slice(0, 10).map((p) => [p.id, recordAttempt(undefined, MONDAY, 1)]));
+    const plan = buildDailyPlan(stateFrom(MONDAY, { problems }), addDays(MONDAY, 3));
+    expect(plan.reviews).toHaveLength(MAX_REVIEWS_PER_DAY);
+    expect(plan.reviewBacklog).toBe(10 - MAX_REVIEWS_PER_DAY);
+  });
+});
+
+describe('calendar status', () => {
+  const start = addDays(MONDAY, -5);
+  const state = stateFrom(start, {
+    dayStats: {
+      [addDays(MONDAY, -3)]: { done: 4, total: 4 },
+      [addDays(MONDAY, -2)]: { done: 1, total: 4 },
+      [MONDAY]: { done: 1, total: 4 },
+    },
+  });
+  const status = (d: string) => dayStatus(state, d, MONDAY, activeDates(state));
+
+  it('marks complete, partial, missed, today and idle days', () => {
+    expect(status(addDays(MONDAY, -3))).toBe('complete');
+    expect(status(addDays(MONDAY, -2))).toBe('partial');
+    expect(status(addDays(MONDAY, -1))).toBe('missed');
+    expect(status(MONDAY)).toBe('today');
+    expect(status(addDays(start, -1))).toBe('idle');
+    expect(status(addDays(MONDAY, 1))).toBe('idle');
   });
 });
 

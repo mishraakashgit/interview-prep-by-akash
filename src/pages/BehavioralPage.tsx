@@ -98,14 +98,14 @@ export default function BehavioralPage() {
 
   return (
     <div className="stack">
-      <PageHeader title="Leadership & behavioral">
+      <PageHeader eyebrow={`${covered} of ${BEHAVIORAL_QUESTIONS.length} questions covered`} title="Leadership & behavioral">
         For lead roles this round often decides the level you get. Build a bank of STAR stories and map each one to the
         questions it answers.
       </PageHeader>
 
       <section className="card">
-        <h2>STAR tips</h2>
-        <ul>
+        <h2 style={{ marginBottom: 8 }}>STAR tips</h2>
+        <ul className="small muted stack-sm">
           {STAR_TIPS.map((t) => (
             <li key={t}>{t}</li>
           ))}
@@ -131,7 +131,7 @@ export default function BehavioralPage() {
         <div className="grid">
           {state.stories.map((s) => (
             <article key={s.id} className="card">
-              <h3>{s.title}</h3>
+              <h3 style={{ marginBottom: 6 }}>{s.title}</h3>
               <p className="muted small">{s.result || s.situation || 'No details yet'}</p>
               <div className="spread">
                 <span className="badge accent">{s.questionIds.length} question(s)</span>
@@ -152,13 +152,13 @@ export default function BehavioralPage() {
           </span>
         </div>
         {BEHAVIORAL_THEMES.map((theme) => (
-          <div key={theme} style={{ marginTop: 16 }}>
-            <h3>{theme}</h3>
+          <div key={theme} style={{ marginTop: 18 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>{theme}</div>
             <ul className="checklist">
               {BEHAVIORAL_QUESTIONS.filter((q) => q.theme === theme).map((q) => {
                 const stories = storiesFor(q.id);
                 return (
-                  <li key={q.id} className="spread">
+                  <li key={q.id} className="spread small" style={{ padding: '6px 0', borderTop: '1px solid var(--border)', flexWrap: 'nowrap' }}>
                     <span>{q.question}</span>
                     {stories.length ? (
                       <span className="badge good" title={stories.map((s) => s.title).join(', ')}>

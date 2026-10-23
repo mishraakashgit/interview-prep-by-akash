@@ -38,7 +38,7 @@ function ApplicationTracker() {
 
   return (
     <section className="card">
-      <h2>Application tracker</h2>
+      <h2 style={{ marginBottom: 12 }}>Application tracker</h2>
       <div className="row" style={{ marginBottom: 12 }}>
         <input list="company-list" value={company} onChange={(e) => setCompany(e.target.value)} aria-label="Company" />
         <datalist id="company-list">
@@ -108,7 +108,7 @@ export default function CompaniesPage() {
   const { state, update } = useStore();
   return (
     <div className="stack">
-      <PageHeader title="Target companies">
+      <PageHeader eyebrow={`${state.applications.length} application(s) tracked`} title="Companies">
         Based on commonly reported candidate experiences. Rounds vary by team and location, so confirm with your recruiter
         and add what you learn to your notes.
       </PageHeader>
@@ -118,18 +118,18 @@ export default function CompaniesPage() {
       <div className="grid-2">
         {COMPANIES.map((c) => (
           <section key={c.id} className="card stack">
-            <h2 style={{ margin: 0 }}>{c.name}</h2>
+            <h2 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontSize: '1.6rem' }}>{c.name}</h2>
             <div>
-              <h3>What they focus on</h3>
-              <ul className="small">
+              <div className="eyebrow" style={{ marginBottom: 6 }}>What they focus on</div>
+              <ul className="small muted stack-sm">
                 {c.focus.map((f) => (
                   <li key={f}>{f}</li>
                 ))}
               </ul>
             </div>
             <div>
-              <h3>Prep tips</h3>
-              <ul className="small">
+              <div className="eyebrow" style={{ marginBottom: 6 }}>Prep tips</div>
+              <ul className="small muted stack-sm">
                 {c.tips.map((t) => (
                   <li key={t}>{t}</li>
                 ))}

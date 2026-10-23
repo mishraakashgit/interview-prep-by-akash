@@ -7,7 +7,7 @@ import { SD_TOPICS } from '../data/systemDesign';
 import { PageHeader } from '../components/ui';
 
 export default function SettingsPage() {
-  const { state, update, replace } = useStore();
+  const { state, update, replace, account } = useStore();
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState('');
   const currentWeek = buildDailyPlan(state, todayISO()).week;
@@ -26,10 +26,10 @@ export default function SettingsPage() {
 
   return (
     <div className="stack">
-      <PageHeader title="Roadmap & data" />
+      <PageHeader eyebrow={`You are in week ${currentWeek}`} title="Roadmap & data" />
 
       <section className="card">
-        <h2>12-week roadmap</h2>
+        <h2 style={{ marginBottom: 6 }}>12-week roadmap</h2>
         <p className="muted small">
           Weekdays: 2 new DSA problems, due reviews, one design topic and one leadership question. Weekends: a timed mock
           plus one problem. After week 12 the plan keeps going in revision mode.
@@ -71,9 +71,11 @@ export default function SettingsPage() {
       </section>
 
       <section className="card stack">
-        <h2 style={{ margin: 0 }}>Your data</h2>
+        <h2>Your data</h2>
         <p className="muted small">
-          Progress is saved in this browser only. Export a backup regularly, and import it to move to another device.
+          {account
+            ? `Signed in as ${account.email}. Progress syncs to your account automatically and is cached in this browser for speed.`
+            : 'Progress is saved in this browser only. Deploy with the Amplify backend to sign in and sync across devices, or export a backup to move it manually.'}
         </p>
         <div className="row">
           <button className="primary" onClick={() => downloadBackup(state)}>
