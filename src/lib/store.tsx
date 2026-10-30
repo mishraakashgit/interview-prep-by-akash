@@ -12,7 +12,7 @@ interface Store {
   state: AppState;
   update: (fn: (s: AppState) => AppState) => void;
   replace: (s: AppState) => void;
-  sync: { status: SyncStatus; savedAt?: number };
+  sync: { status: SyncStatus; savedAt?: number; error?: string };
   account?: Account;
 }
 
@@ -36,7 +36,9 @@ export function StoreProvider({ initial, storageKey, adapter, uploadInitial, acc
 
   useEffect(() => {
     if (!adapter) return;
-    const s = new CloudSaver(adapter, (status, savedAt) => setSync((prev) => ({ status, savedAt: savedAt ?? prev.savedAt })));
+    const s = new CloudSaver(adapter, (status, savedAt, error) =>
+      setSync((prev) => ({ status, savedAt: savedAt ?? prev.savedAt, error: status === 'error' ? error : undefined })),
+    );
     saver.current = s;
     // Flush unsaved edits when the tab is hidden or closed, and retry when back online.
     const flush = () => void s.flush();

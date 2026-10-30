@@ -37,7 +37,9 @@ function SyncBadge() {
     offline: 'Offline · will retry',
     error: 'Sync failed · retrying',
   }[sync.status];
-  const title = [lastChange, sync.savedAt && `Last synced ${timeAgo(sync.savedAt)}`].filter(Boolean).join(' · ');
+  const title = [sync.error && `Error: ${sync.error}`, lastChange, sync.savedAt && `Last synced ${timeAgo(sync.savedAt)}`]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <span className={`sync ${sync.status === 'local' ? 'saved' : sync.status}`} title={title}>

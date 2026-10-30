@@ -9,6 +9,8 @@ import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 const schema = a.schema({
   Progress: a
     .model({
+      // Declared explicitly: the record id is the user's Cognito id, set by the client.
+      id: a.id().required(),
       state: a.json().required(),
       clientUpdatedAt: a.float().required(),
       // Owners can read their own record but never hand it to someone else.

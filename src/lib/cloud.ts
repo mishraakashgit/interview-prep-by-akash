@@ -32,10 +32,13 @@ export function createCloudAdapter(userId: string): CloudAdapter {
     async save(state) {
       const record = { id: userId, state: JSON.stringify(state), clientUpdatedAt: state.updatedAt };
       const write = (create: boolean) => (create ? client.models.Progress.create(record) : client.models.Progress.update(record));
-      let { errors } = await write(!exists);
+      const first = await write(!exists);
       // Our guess about whether the record exists was wrong (e.g. created from another device): try the other call.
-      if (errors?.length) ({ errors } = await write(exists));
-      check(errors);
+      if (first.errors?.length) {
+        const second = await write(exists);
+        // Both failed: report the first error, which names the real problem (the fallback usually just says Unauthorized).
+        if (second.errors?.length) check(first.errors);
+      }
       exists = true;
     },
   };
