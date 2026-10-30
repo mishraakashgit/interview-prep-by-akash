@@ -36,7 +36,7 @@ export class CloudSaver {
 
   constructor(
     private adapter: CloudAdapter,
-    private onStatus: (status: SyncStatus, savedAt?: number) => void,
+    private onStatus: (status: SyncStatus, savedAt?: number, error?: string) => void,
     private delayMs = 1500,
     private retryMs = 10_000,
   ) {}
@@ -65,9 +65,9 @@ export class CloudSaver {
     try {
       await this.adapter.save(state);
       if (!this.pending) this.onStatus('saved', Date.now());
-    } catch {
+    } catch (e) {
       this.pending ??= state; // keep the newest state for the retry
-      this.onStatus(globalThis.navigator?.onLine === false ? 'offline' : 'error');
+      this.onStatus(globalThis.navigator?.onLine === false ? 'offline' : 'error', undefined, (e as Error)?.message);
       this.timer = setTimeout(() => void this.flush(), this.retryMs);
     }
   }

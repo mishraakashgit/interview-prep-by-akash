@@ -52,10 +52,12 @@ describe('CloudSaver', () => {
   it('retries a failed save with the newest state', async () => {
     const save = vi.fn().mockRejectedValueOnce(new Error('network')).mockResolvedValue(undefined);
     const statuses: string[] = [];
-    const saver = new CloudSaver(adapter(save), (s) => statuses.push(s), 100, 1000);
+    const errors: (string | undefined)[] = [];
+    const saver = new CloudSaver(adapter(save), (s, _at, err) => (statuses.push(s), errors.push(err)), 100, 1000);
     saver.schedule(at(1));
     await vi.advanceTimersByTimeAsync(100);
     expect(statuses.at(-1)).toBe('error');
+    expect(errors.at(-1)).toBe('network');
     saver.schedule(at(2));
     await vi.advanceTimersByTimeAsync(1000);
     expect(save).toHaveBeenLastCalledWith(at(2));
