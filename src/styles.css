@@ -95,17 +95,6 @@ ul, ol { margin: 0; padding-left: 18px; }
   background: conic-gradient(from 200deg, var(--accent), #ffc48a, var(--accent));
 }
 .brand em { font-style: normal; color: var(--accent); }
-.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; }
-.nav::-webkit-scrollbar { display: none; }
-.nav a {
-  padding: 6px 12px;
-  border-radius: 8px;
-  color: var(--muted);
-  white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
-}
-.nav a:hover { color: var(--text); background: var(--hover); }
-.nav a.active { color: var(--text); background: var(--surface-2); }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 
 .shell {
@@ -244,22 +233,8 @@ button.check:hover { border-color: var(--good); background: var(--good-soft); }
 button.check.on:hover { background: var(--good); }
 @keyframes pop { 50% { transform: scale(1.18); } }
 
-/* ---------- Today ---------- */
-.goal { display: flex; align-items: center; gap: 16px; }
-.goal .progress { flex: 1; height: 8px; }
-.section-label { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 6px; }
-.task {
-  display: flex; gap: 12px; align-items: flex-start;
-  padding: 12px; margin: 0 -12px; border-radius: 10px;
-  transition: background 0.15s;
-}
-.task:hover { background: var(--surface-2); }
-.task .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.task .title { font-weight: 500; transition: color 0.2s; }
-.task.done .title { color: var(--faint); text-decoration: line-through; text-decoration-color: var(--faint); }
-.task .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.75rem; color: var(--muted); }
 .reveal { opacity: 0; transition: opacity 0.15s; }
-.task:hover .reveal, .problem:hover .reveal, .reveal:focus-within, .reveal.keep { opacity: 1; }
+.problem:hover .reveal, .reveal:focus-within, .reveal.keep { opacity: 1; }
 @media (hover: none) { .reveal { opacity: 1; } }
 
 /* ---------- DSA list ---------- */
@@ -285,8 +260,10 @@ button.check.on:hover { background: var(--good); }
 .problem .name a:hover { color: var(--accent); }
 .problem .extra { grid-column: 2 / -1; }
 @media (max-width: 560px) {
-  .problem { grid-template-columns: 20px minmax(0, 1fr) auto; }
-  .problem .diff { display: none; }
+  .problem { grid-template-columns: 20px minmax(0, 1fr) auto; row-gap: 8px; }
+  .problem .name a { white-space: normal; }
+  /* Rating buttons get their own line under the title on phones. */
+  .problem .segmented { grid-column: 2 / -1; justify-self: start; }
 }
 
 /* ---------- Rail ---------- */
@@ -304,7 +281,10 @@ button.check.on:hover { background: var(--good); }
 .diff-rows .Medium > div { background: var(--warn); }
 .diff-rows .Hard > div { background: var(--bad); }
 .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-.mini-stats div { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.mini-stats div, .mini-stats .stat-link { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+.mini-stats .stat-link { border: 1px solid transparent; text-align: left; font-weight: 400; display: block; }
+.mini-stats .stat-link:hover:not(:disabled) { border-color: var(--border-strong); background: var(--hover); }
+.mini-stats .stat-link:disabled { opacity: 1; cursor: default; }
 .mini-stats strong { display: block; font-size: 1.05rem; }
 
 .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -315,29 +295,16 @@ button.check.on:hover { background: var(--good); }
   transition: transform 0.15s;
 }
 .calendar .day:hover { transform: scale(1.1); }
-.calendar .day.complete { background: var(--good); color: #fff; font-weight: 600; }
-.calendar .day.partial { background: var(--warn-soft); color: var(--warn); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 45%, transparent); }
-.calendar .day.missed { background: var(--bad-soft); color: var(--bad); }
-.calendar .day.today { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--text); font-weight: 600; }
-.calendar .day.complete.is-today { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.calendar .day.l1, .legend i.l1 { background: color-mix(in srgb, var(--good) 30%, var(--cal-idle)); color: var(--text); }
+.calendar .day.l2, .legend i.l2 { background: color-mix(in srgb, var(--good) 60%, var(--cal-idle)); color: var(--text); }
+.calendar .day.l3, .legend i.l3 { background: var(--good); color: #fff; font-weight: 600; }
+.calendar .day.is-today { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--text); font-weight: 600; }
 .calendar .day.blank { background: transparent; }
-.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.7rem; color: var(--muted); margin-top: 10px; }
-.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.legend { display: flex; gap: 8px; align-items: center; justify-content: flex-end; font-size: 0.7rem; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 3px; vertical-align: -1px; }
 
 /* ---------- Misc ---------- */
-.table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
-.table th, .table td { text-align: left; padding: 10px 8px; border-top: 1px solid var(--border); vertical-align: top; }
-.table th { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); font-weight: 600; border-top: 0; }
-.table-wrap { overflow-x: auto; }
-
 details > summary { cursor: pointer; }
-.checklist { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.checklist label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 6px 8px; margin: 0 -8px; border-radius: 8px; }
-.checklist label:hover { background: var(--surface-2); }
-.checklist input { margin-top: 3px; accent-color: var(--good); }
-.checklist input:checked + span { color: var(--muted); }
-
-.timer { font-size: 4rem; font-variant-numeric: tabular-nums; font-weight: 300; text-align: center; letter-spacing: -0.03em; }
 .empty { color: var(--muted); text-align: center; padding: 28px 12px; }
 
 .sync { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }

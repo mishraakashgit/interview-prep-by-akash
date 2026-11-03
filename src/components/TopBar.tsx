@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store';
 import { useTheme } from '../lib/theme';
-
-const NAV = [
-  { to: '/', label: 'Today', end: true },
-  { to: '/dsa', label: 'DSA' },
-  { to: '/system-design', label: 'System Design' },
-  { to: '/behavioral', label: 'Leadership' },
-  { to: '/companies', label: 'Companies' },
-  { to: '/mock', label: 'Mock' },
-  { to: '/settings', label: 'Roadmap' },
-];
+import { downloadBackup, normalize } from '../lib/storage';
+import { useToast } from './Toast';
 
 function timeAgo(ms: number): string {
   const s = Math.round((Date.now() - ms) / 1000);
@@ -49,11 +41,13 @@ function SyncBadge() {
   );
 }
 
-function AccountMenu() {
-  const { account } = useStore();
-  const navigate = useNavigate();
+/** Account and data actions; shown signed in or not, since backups matter in both modes. */
+function Menu() {
+  const { state, replace, account } = useStore();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -62,21 +56,52 @@ function AccountMenu() {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
-  if (!account) return null;
+  const importFile = async (file: File) => {
+    try {
+      const data = normalize(JSON.parse(await file.text()));
+      if (!confirm('Replace all current progress with this backup?')) return;
+      replace(data);
+      toast('Backup restored');
+    } catch (e) {
+      toast(`Import failed: ${(e as Error).message}`);
+    }
+  };
+
   return (
     <div className="menu" ref={ref}>
-      <button className="avatar" onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open}>
-        {account.email[0]?.toUpperCase()}
-      </button>
+      {account ? (
+        <button className="avatar" onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open}>
+          {account.email[0]?.toUpperCase()}
+        </button>
+      ) : (
+        <button className="ghost icon" onClick={() => setOpen(!open)} aria-label="Menu" aria-expanded={open}>
+          ⋯
+        </button>
+      )}
       {open && (
         <div className="menu-panel">
-          <div className="who">{account.email}</div>
-          <button onClick={() => (setOpen(false), navigate('/settings'))}>Roadmap & data</button>
-          <button className="danger" onClick={account.signOut}>
-            Sign out
-          </button>
+          <div className="who">{account ? account.email : 'Saved in this browser only'}</div>
+          <button onClick={() => (setOpen(false), downloadBackup(state))}>Export backup</button>
+          <button onClick={() => fileRef.current?.click()}>Import backup</button>
+          {account && (
+            <button className="danger" onClick={account.signOut}>
+              Sign out
+            </button>
+          )}
         </div>
       )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void importFile(f);
+          e.target.value = '';
+          setOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -85,25 +110,19 @@ export default function TopBar() {
   const [theme, toggle] = useTheme();
   return (
     <header className="topbar">
-      <NavLink to="/" className="brand">
+      <Link to="/" className="brand">
         <span className="brand-mark" />
         <span>
           interview<em>.prep</em>
         </span>
-      </NavLink>
-      <nav className="nav">
-        {NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end}>
-            {n.label}
-          </NavLink>
-        ))}
-      </nav>
+      </Link>
+      <span style={{ flex: 1 }} />
       <div className="topbar-actions">
         <SyncBadge />
         <button className="ghost icon" onClick={toggle} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
           {theme === 'dark' ? '☀' : '☾'}
         </button>
-        <AccountMenu />
+        <Menu />
       </div>
     </header>
   );

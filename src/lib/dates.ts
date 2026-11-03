@@ -26,11 +26,6 @@ export function diffDays(a: string, b: string): number {
   return Math.round((parseISODate(b).getTime() - parseISODate(a).getTime()) / 86_400_000);
 }
 
-export function isWeekend(iso: string): boolean {
-  const day = parseISODate(iso).getDay();
-  return day === 0 || day === 6;
-}
-
 export function formatDate(iso: string): string {
   return parseISODate(iso).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 }
