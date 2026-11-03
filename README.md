@@ -1,4 +1,4 @@
-# Interview Prep: DSA tracker
+# pillsdev: DSA tracker
 
 A self-paced DSA practice tracker: about 155 LeetCode problems grouped by pattern, with a review queue
 that brings back anything you didn't nail.

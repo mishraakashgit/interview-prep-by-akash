@@ -4,6 +4,7 @@ import { useStore } from '../lib/store';
 import { useTheme } from '../lib/theme';
 import { downloadBackup, normalize } from '../lib/storage';
 import { useToast } from './Toast';
+import { PillLogo, Wordmark } from './Brand';
 
 function timeAgo(ms: number): string {
   const s = Math.round((Date.now() - ms) / 1000);
@@ -110,11 +111,9 @@ export default function TopBar() {
   const [theme, toggle] = useTheme();
   return (
     <header className="topbar">
-      <Link to="/" className="brand">
-        <span className="brand-mark" />
-        <span>
-          interview<em>.prep</em>
-        </span>
+      <Link to="/" className="brand" aria-label="pillsdev home">
+        <PillLogo size={28} />
+        <Wordmark />
       </Link>
       <span style={{ flex: 1 }} />
       <div className="topbar-actions">
