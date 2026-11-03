@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { confirmResetPassword, confirmSignIn, resetPassword, signIn } from 'aws-amplify/auth';
+import { PillLogo, Wordmark } from '../components/Brand';
 
 // Sign-up is disabled in the backend (invite-only): accounts are created from
 // the Cognito console, and the first sign-in replaces the emailed temporary password.
@@ -70,15 +71,20 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
 
   return (
     <div className="auth">
+      <span className="deco" style={{ top: '6%', left: '6%' }}><PillLogo size={96} /></span>
+      <span className="deco" style={{ top: '10%', right: '8%', transform: 'scale(-1, 1)' }}><PillLogo size={56} /></span>
+      <span className="deco" style={{ bottom: '8%', left: '10%' }}><PillLogo size={48} /></span>
+      <span className="deco" style={{ bottom: '5%', right: '5%' }}><PillLogo size={120} /></span>
       <div className="auth-card fade-in">
-        <div className="brand">
-          <span className="brand-mark" />
-          <span>
-            interview<em>.prep</em>
+        <div className="auth-brand">
+          <PillLogo size={64} />
+          <Wordmark />
+          <span className="tagline">
+            DSA · <em>one pill at a time</em>
           </span>
         </div>
         <div className="card stack">
-          <h1 className="display" style={{ fontSize: '1.9rem' }}>
+          <h1 className="display" style={{ fontSize: '1.5rem' }}>
             {COPY[mode].title}
           </h1>
           {info && <p className="muted small">{info}</p>}
