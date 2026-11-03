@@ -8,14 +8,16 @@ that brings back anything you didn't nail.
 - **Problems:** ~155 problems in 19 collapsible pattern sections (NeetCode-150 style plus LLD problems
   banks like to ask). ★ marks the core set. Filters, notes per problem, and `/` to search.
 - **Rate every attempt:** *Shaky* or *OK* brings the problem back for review **7 days later**;
-  *Nailed it* closes it. A review rated Shaky or OK again waits another 7 days.
-- **Time to review:** problems that are due appear at the top of the page until you rate them again.
+  *Nailed it* means it's digested. A booster rated Shaky or OK again waits another 7 days.
+- **Booster doses due:** problems that are due appear at the top of the page until you rate them again.
 - **Progress rail:** problems left (overall and by difficulty), reviews due now and later, and a
   calendar shaded by how many problems you attempted each day, with your streak.
 - **No daily goals:** practise whenever you like.
+- **Reset:** the ⋯ / avatar menu has *Reset all progress*; it downloads a backup first, so an import undoes it.
 - **Motion:** smooth scrolling (Lenis), a 3D brand pill beside the title that spins when you rate a
-  problem, and floating 3D pills behind the login screen (Three.js, loaded separately). All of it
-  switches off when your system's "reduce motion" setting is on.
+  problem, and floating 3D pills behind the login screen (Three.js). The 3D code is fetched only on
+  desktop-class devices once the page is idle, and never with data saver or "reduce motion" on;
+  phones get the SVG logo.
 
 ## Accounts, sync and storage
 

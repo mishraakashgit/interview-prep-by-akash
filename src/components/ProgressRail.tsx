@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../lib/store';
+import { setFilterParam } from '../lib/filterParam';
 import { attemptsByDay, currentStreak } from '../lib/activity';
 import { isDue } from '../lib/spacedRepetition';
 import { addDays, parseISODate, toISODate, todayISO } from '../lib/dates';
@@ -16,7 +16,6 @@ const level = (n: number) => (n === 0 ? '' : n <= 2 ? 'l1' : n <= 4 ? 'l2' : 'l3
 
 function ProgressCard() {
   const { state } = useStore();
-  const [, setParams] = useSearchParams();
   const today = todayISO();
   const attempted = (d?: Difficulty) =>
     PROBLEMS.filter((p) => (!d || p.difficulty === d) && (state.problems[p.id]?.status ?? 'todo') !== 'todo').length;
@@ -33,7 +32,7 @@ function ProgressCard() {
       <div className="ring-wrap">
         <Ring value={done} total={total}>
           <strong className="mono">{total - done}</strong>
-          <span className="faint small">left</span>
+          <span className="faint small">pills left</span>
         </Ring>
         <div className="diff-rows">
           {DIFFS.map((d) => {
@@ -54,13 +53,13 @@ function ProgressCard() {
         </div>
       </div>
       <div className="mini-stats small">
-        <button className="stat-link" onClick={() => setParams({ filter: 'due' })} disabled={due === 0}>
+        <button className="stat-link" onClick={() => setFilterParam('due')} disabled={due === 0}>
           <strong className="mono">{due}</strong>
-          <span className="muted">due for review</span>
+          <span className="muted">boosters due</span>
         </button>
-        <button className="stat-link" onClick={() => setParams({ filter: 'revisit' })} disabled={later === 0}>
+        <button className="stat-link" onClick={() => setFilterParam('revisit')} disabled={later === 0}>
           <strong className="mono">{later}</strong>
-          <span className="muted">to review later</span>
+          <span className="muted">boosters later</span>
         </button>
       </div>
     </section>
@@ -111,7 +110,7 @@ function CalendarCard() {
             <span
               key={d}
               className={`day ${level(n)} ${d === today ? 'is-today' : ''}`}
-              title={`${d} · ${n ? `${n} problem${n === 1 ? '' : 's'}` : 'no practice'}`}
+              title={`${d} · ${n ? `${n} pill${n === 1 ? '' : 's'}` : 'no pills'}`}
             >
               {i + 1}
             </span>
@@ -131,7 +130,7 @@ function CalendarCard() {
         <div>
           <strong className="mono">{solvedThisMonth}</strong>
           <span className="muted">
-            attempts · {activeDays} day{activeDays === 1 ? '' : 's'}
+            pills taken · {activeDays} day{activeDays === 1 ? '' : 's'}
           </span>
         </div>
       </div>
