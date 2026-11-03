@@ -13,6 +13,9 @@ that brings back anything you didn't nail.
 - **Progress rail:** problems left (overall and by difficulty), reviews due now and later, and a
   calendar shaded by how many problems you attempted each day, with your streak.
 - **No daily goals:** practise whenever you like.
+- **Motion:** smooth scrolling (Lenis), a 3D brand pill beside the title that spins when you rate a
+  problem, and floating 3D pills behind the login screen (Three.js, loaded separately). All of it
+  switches off when your system's "reduce motion" setting is on.
 
 ## Accounts, sync and storage
 

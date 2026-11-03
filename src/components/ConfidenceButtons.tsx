@@ -2,6 +2,7 @@ import { useStore } from '../lib/store';
 import { recordAttempt, REVIEW_AFTER_DAYS } from '../lib/spacedRepetition';
 import { todayISO } from '../lib/dates';
 import { useToast } from './Toast';
+import { RATED_EVENT } from '../lib/events';
 
 const LEVELS = [
   { value: 1, label: 'Shaky', title: `Needed hints or the solution: review in ${REVIEW_AFTER_DAYS} days` },
@@ -19,6 +20,7 @@ export default function ConfidenceButtons({ problemId, subtle }: { problemId: st
 
   const rate = (level: 1 | 2 | 3) => {
     update((s) => ({ ...s, problems: { ...s.problems, [problemId]: recordAttempt(s.problems[problemId], today, level) } }));
+    window.dispatchEvent(new CustomEvent(RATED_EVENT, { detail: { level } }));
     toast(level === 3 ? 'Nailed it · marked solved' : `Logged · we'll ask you to review it in ${REVIEW_AFTER_DAYS} days`);
   };
 

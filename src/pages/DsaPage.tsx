@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../lib/store';
 import { PATTERNS, PROBLEMS, leetcodeUrl } from '../data/dsa';
@@ -6,6 +6,10 @@ import { formatDate, todayISO } from '../lib/dates';
 import { isDue } from '../lib/spacedRepetition';
 import { CheckButton, Chevron, PageHeader, ProgressBar } from '../components/ui';
 import ConfidenceButtons from '../components/ConfidenceButtons';
+import { PillLogo } from '../components/Brand';
+
+// Three.js loads in its own chunk after the list is on screen.
+const HeroPill = lazy(() => import('../three/HeroPill'));
 import type { AppState, DsaProblem, ProblemStatus } from '../types';
 
 const FILTERS = ['all', 'core', 'todo', 'revisit', 'due', 'solved'] as const;
@@ -63,6 +67,7 @@ function ProblemRow({ p, expanded, onExpand, subtle = true }: { p: DsaProblem; e
       {expanded && (
         <div className="extra stack-sm fade-in">
           <textarea
+            data-lenis-prevent
             autoFocus
             placeholder="Key insight, complexity, the bug that got you…"
             value={prog?.notes ?? ''}
@@ -133,7 +138,15 @@ export default function DsaPage() {
 
   return (
     <>
-      <PageHeader eyebrow={`${done} of ${PROBLEMS.length} attempted`} title="Problems">
+      <PageHeader
+        eyebrow={`${done} of ${PROBLEMS.length} attempted`}
+        title="Problems"
+        icon={
+          <Suspense fallback={<PillLogo size={56} />}>
+            <HeroPill size={56} />
+          </Suspense>
+        }
+      >
         Work through them at your own pace. Rate each attempt: Shaky or OK brings it back for review in a week, Nailed it
         closes it.
       </PageHeader>

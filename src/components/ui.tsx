@@ -1,10 +1,23 @@
 import type { ReactNode } from 'react';
 
-export function PageHeader({ eyebrow, title, children }: { eyebrow?: string; title: string; children?: ReactNode }) {
+export function PageHeader({
+  eyebrow,
+  title,
+  icon,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  icon?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
     <header className="page-header">
       {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-      <h1 className="display">{title}</h1>
+      <div className="title-row">
+        <h1 className="display">{title}</h1>
+        {icon}
+      </div>
       {children && <p>{children}</p>}
     </header>
   );

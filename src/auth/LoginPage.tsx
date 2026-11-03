@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { lazy, Suspense, useCallback, useState, type FormEvent } from 'react';
 import { confirmResetPassword, confirmSignIn, resetPassword, signIn } from 'aws-amplify/auth';
 import { PillLogo, Wordmark } from '../components/Brand';
+
+const PillField = lazy(() => import('../three/PillField'));
 
 // Sign-up is disabled in the backend (invite-only): accounts are created from
 // the Cognito console, and the first sign-in replaces the emailed temporary password.
@@ -21,6 +23,9 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+  // The flat SVG pills show until the 3D field has drawn its first frame (or forever without WebGL).
+  const [has3d, setHas3d] = useState(false);
+  const on3dReady = useCallback(() => setHas3d(true), []);
 
   const go = (m: Mode, message = '') => {
     setMode(m);
@@ -70,7 +75,10 @@ export default function LoginPage({ onSignedIn }: { onSignedIn: () => void }) {
   const newPassword = mode === 'newPassword' || mode === 'reset';
 
   return (
-    <div className="auth">
+    <div className={`auth ${has3d ? 'has-3d' : ''}`}>
+      <Suspense fallback={null}>
+        <PillField onReady={on3dReady} />
+      </Suspense>
       <span className="deco" style={{ top: '6%', left: '6%' }}><PillLogo size={96} /></span>
       <span className="deco" style={{ top: '10%', right: '8%', transform: 'scale(-1, 1)' }}><PillLogo size={56} /></span>
       <span className="deco" style={{ bottom: '8%', left: '10%' }}><PillLogo size={48} /></span>
