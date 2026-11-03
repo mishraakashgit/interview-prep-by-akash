@@ -1,30 +1,25 @@
 import { todayISO } from './dates';
+import { withSchedule } from './spacedRepetition';
 import type { AppState } from '../types';
 
 export const STORAGE_KEY = 'interview-prep:v1';
 
 export function defaultState(): AppState {
-  return {
-    version: 1,
-    updatedAt: 0,
-    startDate: todayISO(),
-    problems: {},
-    topics: {},
-    stories: [],
-    applications: [],
-    companyNotes: {},
-    logs: {},
-    planDone: {},
-    dayStats: {},
-  };
+  return { version: 1, updatedAt: 0, problems: {} };
 }
 
-/** Fill in any fields missing from older or hand-edited data. */
+/**
+ * Fill in missing fields and apply the current review rule to older data.
+ * Fields from earlier versions of the app (topics, stories, ...) are kept as they are.
+ */
 export function normalize(raw: unknown): AppState {
   if (!raw || typeof raw !== 'object') throw new Error('Not a valid backup file');
   const data = raw as Partial<AppState>;
   if (data.version !== 1) throw new Error('Unsupported backup version');
-  return { ...defaultState(), ...data };
+  const problems = Object.fromEntries(
+    Object.entries(data.problems ?? {}).map(([id, p]) => [id, withSchedule({ ...p, notes: p.notes ?? '', attempts: p.attempts ?? [] })]),
+  );
+  return { ...defaultState(), ...data, problems };
 }
 
 /** Per-user cache key when signed in, so two accounts on one browser never mix. */
@@ -41,13 +36,7 @@ export function loadState(key = STORAGE_KEY): AppState | null {
 
 /** True once the user has recorded anything worth keeping. */
 export function hasProgress(s: AppState): boolean {
-  return (
-    Object.keys(s.problems).length > 0 ||
-    Object.keys(s.topics).length > 0 ||
-    s.stories.length > 0 ||
-    s.applications.length > 0 ||
-    Object.keys(s.logs).length > 0
-  );
+  return Object.keys(s.problems).length > 0;
 }
 
 export function saveState(state: AppState, key = STORAGE_KEY): void {
@@ -67,5 +56,3 @@ export function downloadBackup(state: AppState): void {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);

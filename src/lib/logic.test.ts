@@ -1,33 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { PATTERNS, PROBLEMS } from '../data/dsa';
-import { SD_TOPICS } from '../data/systemDesign';
-import { BEHAVIORAL_QUESTIONS } from '../data/behavioral';
 import { addDays, diffDays } from './dates';
-import { activeDates, buildDailyPlan, currentStreak, dayStatus, MAX_REVIEWS_PER_DAY, planTasks, ROADMAP } from './plan';
-import { isDue, nextInterval, recordAttempt } from './spacedRepetition';
+import { attemptsByDay, currentStreak } from './activity';
+import { isDue, recordAttempt, REVIEW_AFTER_DAYS } from './spacedRepetition';
 import { defaultState, normalize } from './storage';
 import type { AppState } from '../types';
 
 const MONDAY = '2026-10-19';
 
-function stateFrom(start: string, patch: Partial<AppState> = {}): AppState {
-  return { ...defaultState(), startDate: start, ...patch };
-}
-
 describe('data integrity', () => {
-  it('has unique problem, topic and question ids', () => {
-    for (const ids of [PROBLEMS.map((p) => p.id), SD_TOPICS.map((t) => t.id), BEHAVIORAL_QUESTIONS.map((q) => q.id)]) {
-      expect(new Set(ids).size).toBe(ids.length);
-    }
-  });
-
-  it('roadmap only references known patterns and topics', () => {
-    const patterns = new Set(PATTERNS.map((p) => p.name));
-    const topics = new Set(SD_TOPICS.map((t) => t.id));
-    for (const week of ROADMAP) {
-      week.patterns.forEach((p) => expect(patterns.has(p), p).toBe(true));
-      week.topics.forEach((t) => expect(topics.has(t), t).toBe(true));
-    }
+  it('has unique problem ids', () => {
+    const ids = PROBLEMS.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('every pattern has problems', () => {
@@ -42,138 +26,87 @@ describe('dates', () => {
   });
 });
 
-describe('spaced repetition', () => {
-  it('low confidence reviews tomorrow and marks revisit', () => {
-    const p = recordAttempt(undefined, MONDAY, 1);
-    expect(p.status).toBe('revisit');
-    expect(p.nextReview).toBe(addDays(MONDAY, 1));
+describe('review schedule', () => {
+  it('brings shaky and OK attempts back after a week', () => {
+    for (const level of [1, 2] as const) {
+      const p = recordAttempt(undefined, MONDAY, level);
+      expect(p.status).toBe('revisit');
+      expect(p.nextReview).toBe(addDays(MONDAY, REVIEW_AFTER_DAYS));
+    }
   });
 
-  it('high confidence grows the interval with each attempt', () => {
-    expect(nextInterval(1, 3)).toBeLessThan(nextInterval(2, 3));
-    expect(nextInterval(2, 3)).toBeLessThan(nextInterval(3, 3));
-    expect(nextInterval(99, 3)).toBe(50);
+  it('closes a problem rated nailed it, with no review', () => {
+    const p = recordAttempt(undefined, MONDAY, 3);
+    expect(p.status).toBe('solved');
+    expect(p.nextReview).toBeUndefined();
+    expect(isDue(p, addDays(MONDAY, 365))).toBe(false);
+  });
+
+  it('is due only from the review date on', () => {
+    const p = recordAttempt(undefined, MONDAY, 2);
+    expect(isDue(p, addDays(MONDAY, REVIEW_AFTER_DAYS - 1))).toBe(false);
+    expect(isDue(p, addDays(MONDAY, REVIEW_AFTER_DAYS))).toBe(true);
+  });
+
+  it('a review rated OK again waits another week; nailed it closes it', () => {
+    const first = recordAttempt(undefined, MONDAY, 1);
+    const reviewDay = first.nextReview!;
+    const again = recordAttempt(first, reviewDay, 2);
+    expect(again.attempts).toEqual([MONDAY, reviewDay]);
+    expect(again.nextReview).toBe(addDays(reviewDay, REVIEW_AFTER_DAYS));
+    expect(recordAttempt(again, again.nextReview!, 3).status).toBe('solved');
   });
 
   it('re-rating on the same day does not add a second attempt', () => {
-    const once = recordAttempt(undefined, MONDAY, 2);
-    const twice = recordAttempt(once, MONDAY, 3);
+    const twice = recordAttempt(recordAttempt(undefined, MONDAY, 2), MONDAY, 3);
     expect(twice.attempts).toEqual([MONDAY]);
-    expect(twice.confidence).toBe(3);
-  });
-
-  it('is due on or after the review date only', () => {
-    const p = recordAttempt(undefined, MONDAY, 3);
-    expect(isDue(p, MONDAY)).toBe(false);
-    expect(isDue(p, p.nextReview!)).toBe(true);
+    expect(twice.status).toBe('solved');
   });
 });
 
-describe('daily plan', () => {
-  it('starts with week 1 patterns on a weekday', () => {
-    const plan = buildDailyPlan(stateFrom(MONDAY), MONDAY);
-    expect(plan.week).toBe(1);
-    expect(plan.mockDay).toBe(false);
-    expect(plan.newProblems).toHaveLength(2);
-    plan.newProblems.forEach((p) => expect(ROADMAP[0].patterns).toContain(p.pattern));
-    expect(plan.topic?.id).toBe('scalability');
-  });
-
-  it('keeps problems solved today in today\'s plan', () => {
-    const before = buildDailyPlan(stateFrom(MONDAY), MONDAY);
-    const solvedId = before.newProblems[0].id;
-    const state = stateFrom(MONDAY, { problems: { [solvedId]: recordAttempt(undefined, MONDAY, 3) } });
-    expect(buildDailyPlan(state, MONDAY).newProblems.map((p) => p.id)).toEqual(before.newProblems.map((p) => p.id));
-    // ...but moves on the next day.
-    expect(buildDailyPlan(state, addDays(MONDAY, 1)).newProblems.map((p) => p.id)).not.toContain(solvedId);
-  });
-
-  it('surfaces due reviews', () => {
-    const id = PROBLEMS[0].id;
-    const state = stateFrom(MONDAY, { problems: { [id]: recordAttempt(undefined, MONDAY, 1) } });
-    expect(buildDailyPlan(state, addDays(MONDAY, 1)).reviews.map((p) => p.id)).toContain(id);
-  });
-
-  it('caps the week at the roadmap length', () => {
-    expect(buildDailyPlan(stateFrom(MONDAY), addDays(MONDAY, 400)).week).toBe(ROADMAP.length);
-  });
-
-  it('treats weekends as mock days with a single new problem', () => {
-    const saturday = addDays(MONDAY, 5);
-    const plan = buildDailyPlan(stateFrom(MONDAY), saturday);
-    expect(plan.mockDay).toBe(true);
-    expect(plan.newProblems).toHaveLength(1);
-  });
-});
-
-describe('daily goal', () => {
-  it('counts a solved problem and the behavioral question as done', () => {
-    let state = stateFrom(MONDAY);
-    const plan = buildDailyPlan(state, MONDAY);
-    state = {
-      ...state,
-      problems: { [plan.newProblems[0].id]: recordAttempt(undefined, MONDAY, 2) },
-      planDone: { [`${MONDAY}|beh:${plan.behavioral.id}`]: true },
-    };
-    const tasks = planTasks(state, buildDailyPlan(state, MONDAY));
-    expect(tasks).toHaveLength(4); // 2 problems + topic + behavioral
-    expect(tasks.filter((t) => t.done)).toHaveLength(2);
-  });
-
-  it('only counts a topic finished that day', () => {
-    const plan = buildDailyPlan(stateFrom(MONDAY), MONDAY);
-    const id = plan.topic!.id;
-    const state = stateFrom(MONDAY, { topics: { [id]: { done: true, checked: [], notes: '', doneOn: MONDAY } } });
-    expect(planTasks(state, buildDailyPlan(state, MONDAY)).find((t) => t.key === `sd:${id}`)?.done).toBe(true);
-    // Next day a new topic is planned.
-    expect(buildDailyPlan(state, addDays(MONDAY, 1)).topic?.id).not.toBe(id);
-  });
-
-  it('caps reviews per day and reports the backlog', () => {
-    const problems = Object.fromEntries(PROBLEMS.slice(0, 10).map((p) => [p.id, recordAttempt(undefined, MONDAY, 1)]));
-    const plan = buildDailyPlan(stateFrom(MONDAY, { problems }), addDays(MONDAY, 3));
-    expect(plan.reviews).toHaveLength(MAX_REVIEWS_PER_DAY);
-    expect(plan.reviewBacklog).toBe(10 - MAX_REVIEWS_PER_DAY);
-  });
-});
-
-describe('calendar status', () => {
-  const start = addDays(MONDAY, -5);
-  const state = stateFrom(start, {
-    dayStats: {
-      [addDays(MONDAY, -3)]: { done: 4, total: 4 },
-      [addDays(MONDAY, -2)]: { done: 1, total: 4 },
-      [MONDAY]: { done: 1, total: 4 },
+describe('activity', () => {
+  const state: AppState = {
+    ...defaultState(),
+    problems: {
+      a: recordAttempt(undefined, addDays(MONDAY, -2), 3),
+      b: recordAttempt(recordAttempt(undefined, addDays(MONDAY, -8), 1), addDays(MONDAY, -1), 2),
+      c: recordAttempt(undefined, addDays(MONDAY, -1), 3),
     },
-  });
-  const status = (d: string) => dayStatus(state, d, MONDAY, activeDates(state));
+  };
 
-  it('marks complete, partial, missed, today and idle days', () => {
-    expect(status(addDays(MONDAY, -3))).toBe('complete');
-    expect(status(addDays(MONDAY, -2))).toBe('partial');
-    expect(status(addDays(MONDAY, -1))).toBe('missed');
-    expect(status(MONDAY)).toBe('today');
-    expect(status(addDays(start, -1))).toBe('idle');
-    expect(status(addDays(MONDAY, 1))).toBe('idle');
+  it('counts attempts per day, reviews included', () => {
+    const days = attemptsByDay(state);
+    expect(days.get(addDays(MONDAY, -1))).toBe(2);
+    expect(days.get(addDays(MONDAY, -2))).toBe(1);
   });
-});
 
-describe('streak', () => {
-  it('counts consecutive active days and tolerates today being empty', () => {
-    const logs = {
-      [addDays(MONDAY, -2)]: { minutes: 30, journal: '' },
-      [addDays(MONDAY, -1)]: { minutes: 45, journal: '' },
-    };
-    const state = stateFrom(addDays(MONDAY, -10), { logs });
-    expect(currentStreak(state, MONDAY)).toBe(2);
-    expect(currentStreak(state, addDays(MONDAY, 1))).toBe(0);
+  it('streak runs back from yesterday when today is empty', () => {
+    const days = attemptsByDay(state);
+    expect(currentStreak(days, MONDAY)).toBe(2);
+    expect(currentStreak(days, addDays(MONDAY, 1))).toBe(0);
   });
 });
 
-describe('backup import', () => {
+describe('backup import and older data', () => {
   it('fills missing fields and rejects other versions', () => {
-    expect(normalize({ version: 1, stories: [] }).problems).toEqual({});
+    expect(normalize({ version: 1 }).problems).toEqual({});
     expect(() => normalize({ version: 2 })).toThrow();
     expect(() => normalize('nope')).toThrow();
+  });
+
+  it('moves old ratings onto the current schedule and keeps other fields', () => {
+    const old = {
+      version: 1,
+      updatedAt: 5,
+      topics: { scalability: { done: true } },
+      problems: {
+        nailed: { status: 'solved', notes: '', attempts: ['2026-10-23'], confidence: 3, nextReview: '2026-11-01' },
+        ok: { status: 'solved', notes: 'two pointers', attempts: ['2026-10-24'], confidence: 2, nextReview: '2026-10-26' },
+      },
+    };
+    const s = normalize(old);
+    expect(s.problems.nailed).toMatchObject({ status: 'solved', nextReview: undefined });
+    expect(s.problems.ok).toMatchObject({ status: 'revisit', nextReview: '2026-10-31', notes: 'two pointers' });
+    expect((s as unknown as { topics: unknown }).topics).toEqual(old.topics);
   });
 });

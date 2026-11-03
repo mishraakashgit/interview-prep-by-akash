@@ -1,32 +1,34 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../lib/store';
-import { activeDates, currentStreak, dayStatus } from '../lib/plan';
+import { attemptsByDay, currentStreak } from '../lib/activity';
 import { isDue } from '../lib/spacedRepetition';
 import { addDays, parseISODate, toISODate, todayISO } from '../lib/dates';
 import { PROBLEMS } from '../data/dsa';
-import { SD_TOPICS } from '../data/systemDesign';
 import { ProgressBar, Ring } from './ui';
 import type { Difficulty } from '../types';
 
 const DIFFS: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const STATUS_LABEL = { complete: 'Goal hit', partial: 'Partly done', missed: 'Skipped', today: 'Today', idle: '' };
+
+/** Shade by how many problems were attempted that day. */
+const level = (n: number) => (n === 0 ? '' : n <= 2 ? 'l1' : n <= 4 ? 'l2' : 'l3');
 
 function ProgressCard() {
   const { state } = useStore();
+  const [, setParams] = useSearchParams();
   const today = todayISO();
-  const solved = (d?: Difficulty) =>
-    PROBLEMS.filter((p) => (!d || p.difficulty === d) && state.problems[p.id]?.status === 'solved').length;
+  const attempted = (d?: Difficulty) =>
+    PROBLEMS.filter((p) => (!d || p.difficulty === d) && (state.problems[p.id]?.status ?? 'todo') !== 'todo').length;
   const total = PROBLEMS.length;
-  const done = solved();
+  const done = attempted();
   const due = PROBLEMS.filter((p) => isDue(state.problems[p.id], today)).length;
-  const topics = SD_TOPICS.filter((t) => state.topics[t.id]?.done).length;
+  const later = PROBLEMS.filter((p) => state.problems[p.id]?.status === 'revisit').length - due;
 
   return (
     <section className="card">
       <div className="card-title">
         <h2>Progress</h2>
-        <span className="faint small">DSA</span>
       </div>
       <div className="ring-wrap">
         <Ring value={done} total={total}>
@@ -36,7 +38,7 @@ function ProgressCard() {
         <div className="diff-rows">
           {DIFFS.map((d) => {
             const all = PROBLEMS.filter((p) => p.difficulty === d).length;
-            const s = solved(d);
+            const s = attempted(d);
             return (
               <div key={d}>
                 <div className="spread small">
@@ -52,16 +54,14 @@ function ProgressCard() {
         </div>
       </div>
       <div className="mini-stats small">
-        <div>
+        <button className="stat-link" onClick={() => setParams({ filter: 'due' })} disabled={due === 0}>
           <strong className="mono">{due}</strong>
-          <span className="muted">reviews due</span>
-        </div>
-        <div>
-          <strong className="mono">
-            {topics}/{SD_TOPICS.length}
-          </strong>
-          <span className="muted">design topics</span>
-        </div>
+          <span className="muted">due for review</span>
+        </button>
+        <button className="stat-link" onClick={() => setParams({ filter: 'revisit' })} disabled={later === 0}>
+          <strong className="mono">{later}</strong>
+          <span className="muted">to review later</span>
+        </button>
       </div>
     </section>
   );
@@ -71,7 +71,7 @@ function CalendarCard() {
   const { state } = useStore();
   const today = todayISO();
   const [offset, setOffset] = useState(0); // months from the current one
-  const active = useMemo(() => activeDates(state), [state]);
+  const counts = useMemo(() => attemptsByDay(state), [state]);
 
   const first = parseISODate(today);
   first.setDate(1);
@@ -80,9 +80,8 @@ function CalendarCard() {
   const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   const lead = (first.getDay() + 6) % 7; // Monday-first grid
   const days = Array.from({ length: daysInMonth }, (_, i) => addDays(monthStart, i));
-  const statuses = days.map((d) => dayStatus(state, d, today, active));
-  const hit = statuses.filter((s) => s === 'complete').length;
-  const missed = statuses.filter((s) => s === 'missed').length;
+  const activeDays = days.filter((d) => counts.has(d)).length;
+  const solvedThisMonth = days.reduce((sum, d) => sum + (counts.get(d) ?? 0), 0);
 
   return (
     <section className="card">
@@ -107,33 +106,33 @@ function CalendarCard() {
           <span key={`b${i}`} className="day blank" />
         ))}
         {days.map((d, i) => {
-          const stat = state.dayStats[d];
-          const title = [d, STATUS_LABEL[statuses[i]], stat && stat.total ? `${stat.done}/${stat.total} tasks` : '']
-            .filter(Boolean)
-            .join(' · ');
+          const n = counts.get(d) ?? 0;
           return (
-            <span key={d} className={`day ${statuses[i]} ${d === today ? 'is-today' : ''}`} title={title}>
+            <span
+              key={d}
+              className={`day ${level(n)} ${d === today ? 'is-today' : ''}`}
+              title={`${d} · ${n ? `${n} problem${n === 1 ? '' : 's'}` : 'no practice'}`}
+            >
               {i + 1}
             </span>
           );
         })}
       </div>
       <div className="legend">
-        <span><i style={{ background: 'var(--good)' }} />Goal hit</span>
-        <span><i style={{ background: 'var(--warn-soft)', boxShadow: 'inset 0 0 0 1px var(--warn)' }} />Partial</span>
-        <span><i style={{ background: 'var(--bad-soft)', boxShadow: 'inset 0 0 0 1px var(--bad)' }} />Skipped</span>
+        <span>Less</span>
+        <span><i className="l1" /><i className="l2" /><i className="l3" /></span>
+        <span>More</span>
       </div>
       <div className="mini-stats small">
         <div>
-          <strong className="mono">🔥 {currentStreak(state, today)}</strong>
+          <strong className="mono">🔥 {currentStreak(counts, today)}</strong>
           <span className="muted">day streak</span>
         </div>
         <div>
-          <strong className="mono">
-            {hit}
-            <span className="faint"> / {missed} </span>
-          </strong>
-          <span className="muted">hit / skipped</span>
+          <strong className="mono">{solvedThisMonth}</strong>
+          <span className="muted">
+            attempts · {activeDays} day{activeDays === 1 ? '' : 's'}
+          </span>
         </div>
       </div>
     </section>

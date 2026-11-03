@@ -1,45 +1,18 @@
-# Interview Prep: Lead Software Engineer (FinTech track)
+# Interview Prep: DSA tracker
 
-A daily interview-prep web app for moving into **Lead Software Engineer** roles at product and
-financial-services companies (Mastercard, Visa, Barclays, JP Morgan, Morgan Stanley and similar).
+A self-paced DSA practice tracker: about 155 LeetCode problems grouped by pattern, with a review queue
+that brings back anything you didn't nail.
 
-It turns a 12-week plan into a short to-do list each day, covering DSA, system design, and the
-leadership/behavioral round.
+## How it works
 
-## What's inside
-
-| Page | What it does |
-| --- | --- |
-| **Today** | Your daily goal as a checklist: 2 new DSA problems, up to 4 spaced reviews, one system design topic, one leadership question (plus a mock on weekends). A goal meter fills as you go, with a small celebration when you finish. Includes a study-time log and journal. |
-| **DSA** | ~155 LeetCode problems in 19 collapsible pattern sections (NeetCode-150 style plus LLD problems banks like to ask). ★ marks the core set. Hover a row to rate a solve *Shaky / OK / Nailed it*; the app schedules the next review. Filters, notes per problem, and `/` to search. |
-| **System Design** | A 45-minute answer framework and 32 topics: fundamentals, building blocks, classic case studies and a **Fintech** set (payment system, card authorization network, double-entry ledger, fraud detection, cross-border transfer, matching engine, reconciliation, Open Banking). Each topic has a checklist and notes. |
-| **Leadership** | STAR tips, a 30-question bank aimed at lead roles in banking/payments, and a STAR **story bank** linked to the questions each story answers. |
-| **Companies** | Focus areas and tips per target company, your notes, and an application tracker. |
-| **Mock** | Random coding, design or behavioral prompt with a timer and a self-assessment rubric. |
-| **Roadmap** | The 12-week roadmap, plan start date, and backup export/import. |
-
-On every page a **progress rail** shows problems left (by difficulty), reviews due and design topics done,
-plus a **calendar** that marks each day as *goal hit*, *partial* or *skipped*, with your streak.
-
-### The 12-week roadmap
-
-| Week | DSA | System design |
-| --- | --- | --- |
-| 1 | Arrays & Hashing, Two Pointers | Scalability, estimation, CAP |
-| 2 | Sliding Window, Stack | Databases, sharding, replication |
-| 3 | Binary Search, Linked List | Caching, load balancers, queues/Kafka |
-| 4 | Trees | Distributed transactions, reliability, microservices |
-| 5 | Tries, Heaps | URL shortener, rate limiter, security |
-| 6 | Backtracking, Graphs | Notifications, news feed, observability |
-| 7 | Graphs, Advanced Graphs | **Payment system, ledger** |
-| 8 | 1-D DP | **Card authorization, fraud detection** |
-| 9 | 2-D DP | Chat, distributed cache, job scheduler |
-| 10 | Greedy, Intervals | **Money transfer, reconciliation** |
-| 11 | Math, Bits, LLD | **Trading engine, Open Banking**, file storage |
-| 12 | Revision | Full mocks |
-
-If you get ahead, the plan pulls from the remaining core problems and topics. After week 12 it keeps
-going in revision mode, driven by the spaced-repetition queue.
+- **Problems:** ~155 problems in 19 collapsible pattern sections (NeetCode-150 style plus LLD problems
+  banks like to ask). ★ marks the core set. Filters, notes per problem, and `/` to search.
+- **Rate every attempt:** *Shaky* or *OK* brings the problem back for review **7 days later**;
+  *Nailed it* closes it. A review rated Shaky or OK again waits another 7 days.
+- **Time to review:** problems that are due appear at the top of the page until you rate them again.
+- **Progress rail:** problems left (overall and by difficulty), reviews due now and later, and a
+  calendar shaded by how many problems you attempted each day, with your streak.
+- **No daily goals:** practise whenever you like.
 
 ## Accounts, sync and storage
 
@@ -56,7 +29,7 @@ How it works, and why it is light on the browser:
 - On sign-in, the newer copy wins: the cloud copy, unless this browser has unsynced newer changes. Progress you made before creating an account is carried over on first sign-in.
 
 Without the backend (for example `npm run dev` locally), the app runs in **local-only** mode: no login,
-data in this browser only. Use **Roadmap → Export backup** to move it around.
+data in this browser only. Use the **⋯ menu → Export backup** (top right) to move it around.
 
 ## Run locally
 
@@ -131,12 +104,5 @@ always-free allowances keep applying. Set an **AWS Budgets** alert at $1 so noth
 All content lives in plain TypeScript files, so it's easy to add to:
 
 - `src/data/dsa.ts`: patterns and problems (`[slug, title, difficulty, core?]`; slug is the LeetCode URL slug)
-- `src/data/systemDesign.ts`: design topics and their checklists
-- `src/data/behavioral.ts`: behavioral questions and STAR tips
-- `src/data/companies.ts`: company focus areas and tips
-- `src/lib/plan.ts`: the weekly roadmap, daily goal and calendar rules
+- `src/lib/spacedRepetition.ts`: the review rule (`REVIEW_AFTER_DAYS`)
 - `amplify/`: backend definition (auth + data)
-
-## Possible next steps
-
-- Add Java/Spring deep-dive topics (JVM, GC, concurrency) as a fourth track; Morgan Stanley and JP Morgan probe these.

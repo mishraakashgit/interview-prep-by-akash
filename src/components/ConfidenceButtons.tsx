@@ -1,16 +1,15 @@
 import { useStore } from '../lib/store';
-import { recordAttempt } from '../lib/spacedRepetition';
-import { diffDays, todayISO } from '../lib/dates';
+import { recordAttempt, REVIEW_AFTER_DAYS } from '../lib/spacedRepetition';
+import { todayISO } from '../lib/dates';
 import { useToast } from './Toast';
 
 const LEVELS = [
-  { value: 1, label: 'Shaky', title: 'Needed hints or the solution: review tomorrow' },
-  { value: 2, label: 'OK', title: 'Solved, but slowly or with bugs' },
-  { value: 3, label: 'Nailed it', title: 'Could do it cold in an interview' },
+  { value: 1, label: 'Shaky', title: `Needed hints or the solution: review in ${REVIEW_AFTER_DAYS} days` },
+  { value: 2, label: 'OK', title: `Solved, but slowly or with bugs: review in ${REVIEW_AFTER_DAYS} days` },
+  { value: 3, label: 'Nailed it', title: 'Could do it cold in an interview: no review needed' },
 ] as const;
 
-/** Records a solve with a confidence rating and schedules the next review. */
-/** `subtle` hides the control until the row is hovered (unless already rated today). */
+/** Records an attempt with a confidence rating; shaky and OK bring the problem back for review. */
 export default function ConfidenceButtons({ problemId, subtle }: { problemId: string; subtle?: boolean }) {
   const { state, update } = useStore();
   const toast = useToast();
@@ -19,10 +18,8 @@ export default function ConfidenceButtons({ problemId, subtle }: { problemId: st
   const ratedToday = prog?.attempts.at(-1) === today ? prog.confidence : undefined;
 
   const rate = (level: 1 | 2 | 3) => {
-    const next = recordAttempt(state.problems[problemId], today, level);
-    update((s) => ({ ...s, problems: { ...s.problems, [problemId]: next } }));
-    const days = diffDays(today, next.nextReview!);
-    toast(`Logged · next review in ${days} day${days === 1 ? '' : 's'}`);
+    update((s) => ({ ...s, problems: { ...s.problems, [problemId]: recordAttempt(s.problems[problemId], today, level) } }));
+    toast(level === 3 ? 'Nailed it · marked solved' : `Logged · we'll ask you to review it in ${REVIEW_AFTER_DAYS} days`);
   };
 
   return (
