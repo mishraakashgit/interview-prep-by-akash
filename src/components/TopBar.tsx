@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useStore } from '../lib/store';
 import { useTheme } from '../lib/theme';
-import { downloadBackup, normalize } from '../lib/storage';
+import { defaultState, downloadBackup, normalize } from '../lib/storage';
 import { useToast } from './Toast';
 import { PillLogo, Wordmark } from './Brand';
 
@@ -57,6 +56,16 @@ function Menu() {
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
 
+  const resetAll = () => {
+    setOpen(false);
+    const taken = Object.keys(state.problems).length;
+    if (!taken) return toast('Nothing to reset · no pills taken yet');
+    if (!confirm(`Reset all progress? Your ${taken} rated pill${taken === 1 ? '' : 's'}, notes and boosters will be cleared.\n\nA backup file downloads first, so you can import it to undo.`)) return;
+    downloadBackup(state);
+    replace(defaultState());
+    toast('Fresh bottle · progress reset, backup downloaded');
+  };
+
   const importFile = async (file: File) => {
     try {
       const data = normalize(JSON.parse(await file.text()));
@@ -84,6 +93,9 @@ function Menu() {
           <div className="who">{account ? account.email : 'Saved in this browser only'}</div>
           <button onClick={() => (setOpen(false), downloadBackup(state))}>Export backup</button>
           <button onClick={() => fileRef.current?.click()}>Import backup</button>
+          <button className="danger" onClick={resetAll}>
+            Reset all progress
+          </button>
           {account && (
             <button className="danger" onClick={account.signOut}>
               Sign out
@@ -111,10 +123,10 @@ export default function TopBar() {
   const [theme, toggle] = useTheme();
   return (
     <header className="topbar">
-      <Link to="/" className="brand" aria-label="pillsdev home">
+      <a href="#/" className="brand" aria-label="pillsdev home">
         <PillLogo size={28} />
         <Wordmark />
-      </Link>
+      </a>
       <span style={{ flex: 1 }} />
       <div className="topbar-actions">
         <SyncBadge />

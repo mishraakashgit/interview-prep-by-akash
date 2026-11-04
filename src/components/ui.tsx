@@ -1,10 +1,23 @@
 import type { ReactNode } from 'react';
 
-export function PageHeader({ eyebrow, title, children }: { eyebrow?: string; title: string; children?: ReactNode }) {
+export function PageHeader({
+  eyebrow,
+  title,
+  icon,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  icon?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
     <header className="page-header">
       {eyebrow && <span className="eyebrow">{eyebrow}</span>}
-      <h1 className="display">{title}</h1>
+      <div className="title-row">
+        <h1 className="display">{title}</h1>
+        {icon}
+      </div>
       {children && <p>{children}</p>}
     </header>
   );
@@ -25,19 +38,12 @@ const Tick = () => (
   </svg>
 );
 
-/** Round animated checkbox. Renders as a static indicator when no onClick is given. */
-export function CheckButton({ on, onClick, label }: { on: boolean; onClick?: () => void; label: string }) {
-  if (!onClick) {
-    return (
-      <span className={`check ${on ? 'on' : ''}`} role="img" aria-label={`${label}: ${on ? 'done' : 'not done'}`}>
-        <Tick />
-      </span>
-    );
-  }
+/** Round tick showing whether a problem has been attempted. */
+export function CheckButton({ on, label }: { on: boolean; label: string }) {
   return (
-    <button className={`check ${on ? 'on' : ''}`} onClick={onClick} aria-pressed={on} aria-label={label}>
+    <span className={`check ${on ? 'on' : ''}`} role="img" aria-label={`${label}: ${on ? 'taken' : 'not taken yet'}`}>
       <Tick />
-    </button>
+    </span>
   );
 }
 

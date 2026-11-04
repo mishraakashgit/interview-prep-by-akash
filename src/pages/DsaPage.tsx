@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../lib/store';
+import { setFilterParam, useFilterParam } from '../lib/filterParam';
 import { PATTERNS, PROBLEMS, leetcodeUrl } from '../data/dsa';
 import { formatDate, todayISO } from '../lib/dates';
 import { isDue } from '../lib/spacedRepetition';
 import { CheckButton, Chevron, PageHeader, ProgressBar } from '../components/ui';
 import ConfidenceButtons from '../components/ConfidenceButtons';
+import { PillLogo } from '../components/Brand';
+import { HeroPillSlot } from '../three/Deferred';
 import type { AppState, DsaProblem, ProblemStatus } from '../types';
 
 const FILTERS = ['all', 'core', 'todo', 'revisit', 'due', 'solved'] as const;
@@ -13,10 +15,10 @@ type Filter = (typeof FILTERS)[number];
 const FILTER_LABEL: Record<Filter, string> = {
   all: 'All',
   core: '★ Core',
-  todo: 'To do',
-  revisit: 'To review',
+  todo: 'Untaken',
+  revisit: 'Boosters',
   due: 'Due now',
-  solved: 'Nailed',
+  solved: 'Digested',
 };
 
 const attempted = (state: AppState, id: string) => (state.problems[id]?.status ?? 'todo') !== 'todo';
@@ -49,9 +51,9 @@ function ProblemRow({ p, expanded, onExpand, subtle = true }: { p: DsaProblem; e
         <span className="small faint row" style={{ gap: 6 }}>
           {status === 'revisit' &&
             (isDue(prog, today) ? (
-              <span className="badge accent">review now</span>
+              <span className="badge accent">booster due</span>
             ) : (
-              <span className="badge warn">review {formatDate(prog!.nextReview!)}</span>
+              <span className="badge warn">booster {formatDate(prog!.nextReview!)}</span>
             ))}
           <button className="ghost small" style={{ padding: '0 4px' }} onClick={onExpand} aria-expanded={expanded}>
             {prog?.notes ? '✎ notes' : '+ notes'}
@@ -63,6 +65,7 @@ function ProblemRow({ p, expanded, onExpand, subtle = true }: { p: DsaProblem; e
       {expanded && (
         <div className="extra stack-sm fade-in">
           <textarea
+            data-lenis-prevent
             autoFocus
             placeholder="Key insight, complexity, the bug that got you…"
             value={prog?.notes ?? ''}
@@ -71,7 +74,7 @@ function ProblemRow({ p, expanded, onExpand, subtle = true }: { p: DsaProblem; e
           {prog && (
             <div>
               <button className="small ghost danger" onClick={reset}>
-                Reset progress ({prog.attempts.length} attempt{prog.attempts.length === 1 ? '' : 's'})
+                Reset this pill ({prog.attempts.length} dose{prog.attempts.length === 1 ? '' : 's'})
               </button>
             </div>
           )}
@@ -84,8 +87,8 @@ function ProblemRow({ p, expanded, onExpand, subtle = true }: { p: DsaProblem; e
 export default function DsaPage() {
   const { state } = useStore();
   const today = todayISO();
-  const [params, setParams] = useSearchParams();
-  const filter = (FILTERS as readonly string[]).includes(params.get('filter') ?? '') ? (params.get('filter') as Filter) : 'all';
+  const param = useFilterParam();
+  const filter = (FILTERS as readonly string[]).includes(param ?? '') ? (param as Filter) : 'all';
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   // Start with the first pattern that still has problems left open.
@@ -133,16 +136,20 @@ export default function DsaPage() {
 
   return (
     <>
-      <PageHeader eyebrow={`${done} of ${PROBLEMS.length} attempted`} title="Problems">
-        Work through them at your own pace. Rate each attempt: Shaky or OK brings it back for review in a week, Nailed it
-        closes it.
+      <PageHeader
+        eyebrow={`${done} of ${PROBLEMS.length} pills taken`}
+        title="Pills"
+        icon={<HeroPillSlot size={56} fallback={<PillLogo size={56} />} />}
+      >
+        One pill at a time, at your own pace. Rate each dose: Shaky or OK prescribes a booster in a week, Nailed it
+        means it's digested.
       </PageHeader>
 
       {due.length > 0 && filter === 'all' && !query && (
         <section className="accordion fade-in">
           <div className="spread" style={{ padding: '14px 18px' }}>
-            <strong>Time to review · {due.length}</strong>
-            <span className="small muted">Rate it again: Nailed it closes it, otherwise another week</span>
+            <strong>Booster doses due · {due.length}</strong>
+            <span className="small muted">Take it again: Nailed it digests it, otherwise another week</span>
           </div>
           {due.map((p) => (
             <ProblemRow key={p.id} p={p} expanded={expanded === `due:${p.id}`} onExpand={() => expand(`due:${p.id}`)} subtle={false} />
@@ -158,7 +165,7 @@ export default function DsaPage() {
               role="tab"
               aria-selected={filter === f}
               className={filter === f ? 'selected' : ''}
-              onClick={() => setParams(f === 'all' ? {} : { filter: f }, { replace: true })}
+              onClick={() => setFilterParam(f === 'all' ? null : f)}
             >
               {FILTER_LABEL[f]}
             </button>
@@ -167,10 +174,10 @@ export default function DsaPage() {
         <div className="row">
           <input
             ref={search}
-            placeholder="Search problems"
+            placeholder="Search pills"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Search problems"
+            aria-label="Search pills"
             style={{ width: 200 }}
           />
           <kbd>/</kbd>
@@ -206,7 +213,7 @@ export default function DsaPage() {
           </details>
         );
       })}
-      {visible.length === 0 && <p className="card empty">Nothing here. Try another filter.</p>}
+      {visible.length === 0 && <p className="card empty">This bottle is empty. Try another filter.</p>}
     </>
   );
 }
